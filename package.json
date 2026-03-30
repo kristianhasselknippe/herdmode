@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "dev:server": "bun run --filter server dev",
-    "dev:web": "bun run --filter web dev"
+    "dev:web": "bun run --filter web dev",
+    "dev:desktop": "cd packages/web && npx vite build && cd ../desktop && npm run build:ts && npm run dev",
+    "build": "cd packages/desktop && npm run dist"
   }
 }
