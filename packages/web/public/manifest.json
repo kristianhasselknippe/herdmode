@@ -1,7 +1,7 @@
 {
-  "name": "Agent Tracker",
-  "short_name": "AgentTracker",
-  "description": "Monitor active Claude Code sessions",
+  "name": "Herdmode",
+  "short_name": "Herdmode",
+  "description": "Wrangle your Claude Code agents",
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#1a1a2e",

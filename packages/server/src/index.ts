@@ -53,4 +53,4 @@ Bun.serve({
   },
 });
 
-console.log("Agent Tracker server running on http://localhost:3001");
+console.log("Herdmode server running on http://localhost:3001");

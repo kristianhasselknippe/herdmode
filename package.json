@@ -1,5 +1,5 @@
 {
-  "name": "agent-tracker",
+  "name": "herdmode",
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {

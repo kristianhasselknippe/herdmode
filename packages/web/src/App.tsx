@@ -14,7 +14,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>Agent Tracker</h1>
+        <h1>Herdmode</h1>
         <div className="topbar-right">
           <span className="badge">{activeCount} active</span>
           <span className={`connection-dot ${connected ? "connected" : ""}`} />

@@ -33,7 +33,7 @@ export function useSessionSocket() {
         const getMessage = ALERT_TRANSITIONS[session.status];
         if (getMessage) {
           const body = getMessage(session);
-          if (body) notify("Agent Tracker", body);
+          if (body) notify("Herdmode", body);
         }
       }
     }
