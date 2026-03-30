@@ -42,11 +42,16 @@ export async function getProjectData(
   const projectDir = join(PROJECTS_DIR, encodePath(cwd));
   const jsonlPath = join(projectDir, `${sessionId}.jsonl`);
 
-  let content: string;
+  let content: string | null;
   try {
     content = await readFile(jsonlPath, "utf-8");
   } catch {
-    return { messageCount: 0, tokenUsage: 0 };
+    content = null;
+  }
+
+  if (!content) {
+    const gitBranch = await getGitBranch(cwd);
+    return { gitBranch, messageCount: 0, tokenUsage: 0 };
   }
 
   const lines = content.trim().split("\n");
