@@ -30,7 +30,7 @@ function focusSession(pid: number) {
 }
 
 export function SessionDetail({ session }: Props) {
-  const canFocus = session.isAlive && session.provider === "claude" && session.pid;
+  const canFocus = session.isAlive && session.pid;
 
   return (
     <div className="detail-panel">
