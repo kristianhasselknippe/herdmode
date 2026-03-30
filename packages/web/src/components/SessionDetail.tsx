@@ -1,5 +1,5 @@
 import type { Session, Task } from "../types";
-import { GitHubStub } from "./integrations/GitHubStub";
+import { GitHubPR } from "./integrations/GitHubPR";
 import { LinearStub } from "./integrations/LinearStub";
 import { NotionStub } from "./integrations/NotionStub";
 import { SlackStub } from "./integrations/SlackStub";
@@ -81,7 +81,7 @@ export function SessionDetail({ session }: Props) {
 
       <div className="section">
         <h3>Integrations</h3>
-        <GitHubStub />
+        <GitHubPR session={session} />
         <LinearStub />
         <NotionStub />
         <SlackStub />

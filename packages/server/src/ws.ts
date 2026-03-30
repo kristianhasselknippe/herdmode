@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import type { WebSocket } from "ws";
 import { readAllSessions } from "./sessions";
+import { startGitHubPolling } from "./github";
 
 const CLAUDE_DIR = join(homedir(), ".claude");
 const SESSIONS_DIR = join(CLAUDE_DIR, "sessions");
@@ -76,5 +77,29 @@ export function startWatcher() {
   watchProjectSubdirs();
   watchTaskSubdirs();
   setInterval(broadcast, 2000);
+
+  startGitHubPolling(
+    () => {
+      // Collect unique cwd+branch pairs from the last broadcast snapshot
+      if (!lastSnapshot) return [];
+      try {
+        const { sessions } = JSON.parse(lastSnapshot);
+        const seen = new Set<string>();
+        const result: Array<{ cwd: string; branch: string }> = [];
+        for (const s of sessions) {
+          if (!s.isAlive || !s.gitBranch) continue;
+          const key = `${s.cwd}::${s.gitBranch}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          result.push({ cwd: s.cwd, branch: s.gitBranch });
+        }
+        return result;
+      } catch {
+        return [];
+      }
+    },
+    scheduleBroadcast
+  );
+
   console.log("File watchers started + 2s polling fallback");
 }
