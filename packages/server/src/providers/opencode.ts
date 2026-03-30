@@ -1,5 +1,6 @@
-import { Database } from "bun:sqlite";
+import Database from "better-sqlite3";
 import { existsSync, readdirSync, readlinkSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { Session, Task, SessionStatus } from "../types";
@@ -80,8 +81,8 @@ export class OpencodeProvider implements SessionProvider {
     if (this.db) return this.db;
     if (!existsSync(DB_PATH)) return null;
     try {
-      this.db = new Database(DB_PATH, { readonly: true });
-      this.db.exec("PRAGMA journal_mode=WAL");
+      this.db = new Database(DB_PATH, { readonly: true, fileMustExist: true });
+      this.db.pragma("journal_mode = WAL");
       return this.db;
     } catch {
       return null;
@@ -101,7 +102,7 @@ export class OpencodeProvider implements SessionProvider {
     }
 
     const rows = db
-      .query(
+      .prepare(
         `SELECT
           s.id, s.title, s.slug, s.directory, s.time_created, s.time_updated,
           s.workspace_id, s.parent_id,
@@ -156,7 +157,7 @@ export class OpencodeProvider implements SessionProvider {
 
       // Get last message data for status derivation
       const lastMsg = db
-        .query(
+        .prepare(
           `SELECT data FROM message
            WHERE session_id = ?
            ORDER BY time_created DESC LIMIT 1`
@@ -186,7 +187,7 @@ export class OpencodeProvider implements SessionProvider {
       // If last message was user, get the most recent assistant message for model info
       if (lastRole === "user") {
         const lastAssistant = db
-          .query(
+          .prepare(
             `SELECT data FROM message
              WHERE session_id = ? AND json_extract(data, '$.role') = 'assistant'
              ORDER BY time_created DESC LIMIT 1`
@@ -203,7 +204,7 @@ export class OpencodeProvider implements SessionProvider {
       // Get last tool name from parts
       if (lastRole === "assistant" && lastFinish === "tool-calls") {
         const lastToolPart = db
-          .query(
+          .prepare(
             `SELECT data FROM part
              WHERE session_id = ? AND json_extract(data, '$.type') = 'tool'
              ORDER BY time_created DESC LIMIT 1`
@@ -219,7 +220,7 @@ export class OpencodeProvider implements SessionProvider {
 
       // Get message count and token usage
       const stats = db
-        .query(
+        .prepare(
           `SELECT
             COUNT(*) as msg_count,
             COALESCE(SUM(
@@ -232,7 +233,7 @@ export class OpencodeProvider implements SessionProvider {
 
       // Get todos
       const todoRows = db
-        .query(
+        .prepare(
           `SELECT content, status, priority, position
            FROM todo WHERE session_id = ?
            ORDER BY position ASC`
@@ -257,11 +258,11 @@ export class OpencodeProvider implements SessionProvider {
       let gitBranch = row.workspace_branch || undefined;
       if (!gitBranch) {
         try {
-          const proc = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"], {
+          const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
             cwd,
             timeout: 3_000,
-          });
-          const branch = proc.stdout.toString().trim();
+            encoding: "utf-8",
+          }).trim();
           if (branch && branch !== "HEAD") gitBranch = branch;
         } catch {}
       }
