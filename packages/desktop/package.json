@@ -15,8 +15,8 @@
     "start": "electron ."
   },
   "dependencies": {
-    "hono": "^4",
     "@hono/node-server": "^1",
+    "hono": "^4",
     "ws": "^8"
   },
   "devDependencies": {
