@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { readAllSessions } from "./sessions";
+import { getAllSessions } from "./providers";
 import { focusSessionWindow } from "./focus";
 import { forceRefreshPR } from "./github";
 
@@ -11,13 +11,13 @@ export function createApp(staticRoot?: string) {
   app.use("/api/*", cors());
 
   app.get("/api/sessions", async (c) => {
-    const sessions = await readAllSessions();
+    const sessions = await getAllSessions();
     return c.json(sessions);
   });
 
   app.get("/api/sessions/:id", async (c) => {
     const id = c.req.param("id");
-    const sessions = await readAllSessions();
+    const sessions = await getAllSessions();
     const session = sessions.find((s) => s.sessionId === id);
     if (!session) return c.json({ error: "Not found" }, 404);
     return c.json(session);
@@ -33,7 +33,7 @@ export function createApp(staticRoot?: string) {
 
   app.post("/api/sessions/:id/refresh-pr", async (c) => {
     const id = c.req.param("id");
-    const sessions = await readAllSessions();
+    const sessions = await getAllSessions();
     const session = sessions.find((s) => s.sessionId === id);
     if (!session) return c.json({ error: "Not found" }, 404);
     if (!session.gitBranch) return c.json({ error: "No branch" }, 400);

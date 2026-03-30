@@ -1,15 +1,9 @@
 import { watch } from "node:fs";
-import { readdir } from "node:fs/promises";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import type { WebSocket } from "ws";
-import { readAllSessions } from "./sessions";
+import { getAllSessions, getAllWatchPaths, registerProvider } from "./providers";
+import { ClaudeProvider, getClaudeExtraWatchPaths } from "./providers/claude";
+import { OpencodeProvider } from "./providers/opencode";
 import { startGitHubPolling } from "./github";
-
-const CLAUDE_DIR = join(homedir(), ".claude");
-const SESSIONS_DIR = join(CLAUDE_DIR, "sessions");
-const PROJECTS_DIR = join(CLAUDE_DIR, "projects");
-const TASKS_DIR = join(CLAUDE_DIR, "tasks");
 
 const clients = new Set<WebSocket>();
 
@@ -25,7 +19,7 @@ let lastSnapshot = "";
 
 async function broadcast() {
   if (clients.size === 0) return;
-  const sessions = await readAllSessions();
+  const sessions = await getAllSessions();
   const message = JSON.stringify({ type: "sessions-updated", sessions });
   if (message === lastSnapshot) return;
   lastSnapshot = message;
@@ -50,37 +44,26 @@ function watchDir(dir: string, label: string) {
   }
 }
 
-async function watchProjectSubdirs() {
-  try {
-    const dirs = await readdir(PROJECTS_DIR);
-    for (const dir of dirs) {
-      watchDir(join(PROJECTS_DIR, dir), `project/${dir}`);
-    }
-  } catch {
-    // projects dir may not exist
-  }
-}
+export async function startWatcher() {
+  // Register all providers
+  registerProvider(new ClaudeProvider());
+  registerProvider(new OpencodeProvider());
 
-async function watchTaskSubdirs() {
-  try {
-    const dirs = await readdir(TASKS_DIR);
-    for (const dir of dirs) {
-      watchDir(join(TASKS_DIR, dir), `tasks/${dir}`);
-    }
-  } catch {
-    // tasks dir may not exist
+  // Watch provider-declared paths
+  for (const path of getAllWatchPaths()) {
+    watchDir(path, path);
   }
-}
 
-export function startWatcher() {
-  watchDir(SESSIONS_DIR, "sessions");
-  watchProjectSubdirs();
-  watchTaskSubdirs();
+  // Watch Claude subdirectories (projects/*, tasks/*)
+  const extraPaths = await getClaudeExtraWatchPaths();
+  for (const path of extraPaths) {
+    watchDir(path, path);
+  }
+
   setInterval(broadcast, 2000);
 
   startGitHubPolling(
     () => {
-      // Collect unique cwd+branch pairs from the last broadcast snapshot
       if (!lastSnapshot) return [];
       try {
         const { sessions } = JSON.parse(lastSnapshot);
