@@ -6,9 +6,9 @@ import { getTasksForSession } from "./tasks";
 import { getProjectData, type ProjectData } from "./projects";
 import { getCachedPR } from "./github";
 
-const SESSIONS_DIR = join(homedir(), ".claude", "sessions");
+export const SESSIONS_DIR = join(homedir(), ".claude", "sessions");
 
-function isProcessAlive(pid: number): boolean {
+export function isProcessAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);
     return true;
@@ -20,7 +20,7 @@ function isProcessAlive(pid: number): boolean {
 const IDLE_THRESHOLD_MS = 60_000; // 1 minute without activity = idle
 const TOOL_APPROVAL_THRESHOLD_MS = 10_000; // 10s without follow-up = likely waiting for approval
 
-function deriveStatus(alive: boolean, projectData: ProjectData): SessionStatus {
+export function deriveStatus(alive: boolean, projectData: ProjectData): SessionStatus {
   if (!alive) return "ended";
 
   const { lastMessageType, lastStopReason, lastActivityAt, lastToolName } = projectData;
