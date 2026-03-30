@@ -35,8 +35,10 @@ interface Props {
   session: Session;
 }
 
+const SKIP_BRANCHES = new Set(["main", "master", "develop", "development"]);
+
 export function GitHubPR({ session }: Props) {
-  if (!session.gitBranch) return null;
+  if (!session.gitBranch || SKIP_BRANCHES.has(session.gitBranch)) return null;
 
   const pr = session.pullRequest;
 

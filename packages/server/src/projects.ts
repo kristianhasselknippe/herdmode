@@ -1,6 +1,10 @@
 import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { join } from "node:path";
 import { homedir } from "node:os";
+
+const execFileAsync = promisify(execFile);
 
 const PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
@@ -16,6 +20,19 @@ export interface ProjectData {
 
 function encodePath(cwd: string): string {
   return cwd.replace(/\//g, "-");
+}
+
+async function getGitBranch(cwd: string): Promise<string | undefined> {
+  try {
+    const { stdout } = await execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      cwd,
+      timeout: 3_000,
+    });
+    const branch = stdout.trim();
+    return branch && branch !== "HEAD" ? branch : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function getProjectData(
@@ -74,6 +91,11 @@ export async function getProjectData(
     } catch {
       // skip malformed lines
     }
+  }
+
+  // Fall back to git CLI if JSONL doesn't have branch info
+  if (!gitBranch) {
+    gitBranch = await getGitBranch(cwd);
   }
 
   return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt, lastToolName };
