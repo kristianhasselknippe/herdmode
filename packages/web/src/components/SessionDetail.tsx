@@ -30,15 +30,17 @@ function focusSession(pid: number) {
 }
 
 export function SessionDetail({ session }: Props) {
+  const canFocus = session.isAlive && session.provider === "claude" && session.pid;
+
   return (
     <div className="detail-panel">
       <div className="detail-header">
         <div className="detail-title-row">
           <h2>{session.projectName}</h2>
-          {session.isAlive && (
+          {canFocus && (
             <button
               className="focus-btn"
-              onClick={() => focusSession(session.pid)}
+              onClick={() => focusSession(session.pid!)}
               title="Focus terminal window"
             >
               Focus Terminal
@@ -47,11 +49,15 @@ export function SessionDetail({ session }: Props) {
         </div>
         <div className="detail-meta">
           <span>
+            Provider: <strong>{session.provider}</strong>
+            {session.model && <> &middot; Model: <code>{session.model}</code></>}
+          </span>
+          <span>
             Path: <code>{session.cwd}</code>
           </span>
           <span>
-            Session: <code>{session.sessionId.slice(0, 8)}</code> &middot; PID:{" "}
-            <code>{session.pid}</code>
+            Session: <code>{session.sessionId.slice(0, 8)}</code>
+            {session.pid && <> &middot; PID: <code>{session.pid}</code></>}
           </span>
           <span>
             Status: <strong>{session.status}</strong> &middot;{" "}
