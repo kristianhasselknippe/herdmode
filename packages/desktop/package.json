@@ -2,6 +2,9 @@
   "name": "herdmode",
   "version": "0.1.0",
   "private": true,
+  "description": "Wrangle your Claude Code agents",
+  "author": "Kristian Hasselknippe",
+  "homepage": "https://github.com/kristianhasselknippe/herdmode",
   "main": "dist/main.js",
   "scripts": {
     "dev": "electron dist/main.js",
