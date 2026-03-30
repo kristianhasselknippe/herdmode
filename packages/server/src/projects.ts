@@ -16,6 +16,7 @@ export interface ProjectData {
   lastStopReason?: string;
   lastActivityAt?: number;
   lastToolName?: string;
+  model?: string;
 }
 
 function encodePath(cwd: string): string {
@@ -62,6 +63,7 @@ export async function getProjectData(
   let lastStopReason: string | undefined;
   let lastActivityAt: number | undefined;
   let lastToolName: string | undefined;
+  let model: string | undefined;
 
   for (const line of lines) {
     try {
@@ -71,6 +73,9 @@ export async function getProjectData(
         lastMessageType = entry.type;
         if (entry.type === "assistant") {
           lastStopReason = entry.message?.stop_reason;
+          if (entry.message?.model) {
+            model = entry.message.model;
+          }
           // Track the last tool name from tool_use content blocks
           const content = entry.message?.content;
           if (Array.isArray(content)) {
@@ -103,5 +108,5 @@ export async function getProjectData(
     gitBranch = await getGitBranch(cwd);
   }
 
-  return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt, lastToolName };
+  return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt, lastToolName, model };
 }

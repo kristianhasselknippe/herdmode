@@ -9,6 +9,8 @@ export interface Task {
 
 export type SessionStatus = "working" | "waiting" | "idle" | "waiting_on_agent" | "ended";
 
+export type SessionProvider = "claude" | "opencode";
+
 export interface CheckRun {
   name: string;
   status: "queued" | "in_progress" | "completed";
@@ -28,7 +30,7 @@ export interface PullRequestData {
 }
 
 export interface Session {
-  pid: number;
+  pid?: number;
   sessionId: string;
   cwd: string;
   projectName: string;
@@ -44,6 +46,8 @@ export interface Session {
   tokenUsage: number;
   lastActivityAt?: number;
   pullRequest?: PullRequestData;
+  provider: SessionProvider;
+  model?: string;
 }
 
 export interface RawSessionFile {

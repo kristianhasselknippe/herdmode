@@ -102,6 +102,8 @@ export async function readAllSessions(): Promise<Session[]> {
         pullRequest: projectData.gitBranch
           ? getCachedPR(raw.cwd, projectData.gitBranch)
           : undefined,
+        provider: "claude" as const,
+        model: projectData.model,
       });
     } catch {
       // skip malformed files
