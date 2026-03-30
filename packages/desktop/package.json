@@ -1,0 +1,25 @@
+{
+  "name": "herdmode",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "electron dist/main.js",
+    "build:ts": "tsc",
+    "build:web": "cd ../web && npx vite build",
+    "build": "npm run build:web && npm run build:ts",
+    "dist": "npm run build && electron-builder",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "hono": "^4",
+    "@hono/node-server": "^1",
+    "ws": "^8"
+  },
+  "devDependencies": {
+    "electron": "^35",
+    "electron-builder": "^26",
+    "@types/ws": "^8",
+    "typescript": "^5"
+  }
+}

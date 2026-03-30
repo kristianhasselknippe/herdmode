@@ -1,0 +1,20 @@
+appId: com.herdmode.app
+productName: Herdmode
+directories:
+  output: release
+files:
+  - dist/**/*
+  - node_modules/**/*
+extraResources:
+  - from: ../web/dist
+    to: web
+    filter:
+      - "**/*"
+  - from: assets/tray-icon.png
+    to: assets/tray-icon.png
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: assets/icon.png
+  category: Development
