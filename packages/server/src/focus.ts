@@ -1,4 +1,7 @@
-import { $ } from "bun";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 const TERMINAL_NAMES = new Set([
   "alacritty",
@@ -13,17 +16,14 @@ const TERMINAL_NAMES = new Set([
   "terminator",
 ]);
 
-/**
- * Walk the process tree from a PID upward to find the terminal emulator ancestor.
- */
 async function findTerminalPid(pid: number): Promise<number | null> {
   let current = pid;
   while (current > 1) {
     try {
-      const comm = (await $`ps -o comm= -p ${current}`.text()).trim();
-      if (TERMINAL_NAMES.has(comm)) return current;
-      const ppid = (await $`ps -o ppid= -p ${current}`.text()).trim();
-      current = Number(ppid);
+      const { stdout: comm } = await execFileAsync("ps", ["-o", "comm=", "-p", String(current)]);
+      if (TERMINAL_NAMES.has(comm.trim())) return current;
+      const { stdout: ppid } = await execFileAsync("ps", ["-o", "ppid=", "-p", String(current)]);
+      current = Number(ppid.trim());
       if (isNaN(current)) return null;
     } catch {
       return null;
@@ -41,9 +41,8 @@ export async function focusSessionWindow(
   }
 
   try {
-    // Get all Hyprland clients and find the one matching the terminal PID
-    const clientsJson = (await $`hyprctl clients -j`.text()).trim();
-    const clients = JSON.parse(clientsJson) as Array<{
+    const { stdout: clientsJson } = await execFileAsync("hyprctl", ["clients", "-j"]);
+    const clients = JSON.parse(clientsJson.trim()) as Array<{
       pid: number;
       address: string;
       workspace: { id: number };
@@ -54,7 +53,7 @@ export async function focusSessionWindow(
       return { ok: false, error: `Terminal PID ${terminalPid} not found in Hyprland clients` };
     }
 
-    await $`hyprctl dispatch focuswindow pid:${terminalPid}`.quiet();
+    await execFileAsync("hyprctl", ["dispatch", "focuswindow", `pid:${terminalPid}`]);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err) };
