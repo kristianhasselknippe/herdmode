@@ -9,7 +9,7 @@ function requestNotificationPermission() {
 
 function notify(title: string, body: string) {
   if ("Notification" in window && Notification.permission === "granted") {
-    new Notification(title, { body, icon: "/manifest.json" });
+    new Notification(title, { body, icon: "/herdmode-logo.png" });
   }
 }
 
@@ -18,11 +18,17 @@ const ALERT_TRANSITIONS: Record<string, (session: Session) => string | null> = {
   idle: (s) => `${s.projectName} has gone idle`,
 };
 
+// Delay before firing a notification, so rapid status flickers
+// (e.g. working→waiting→working between tool calls) don't spam.
+const NOTIFY_DELAY_MS = 5_000;
+
 export function useSessionSocket() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const prevStatusMap = useRef<Map<string, SessionStatus>>(new Map());
+  const pendingNotifications = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const lastNotifiedStatus = useRef<Map<string, SessionStatus>>(new Map());
 
   const checkTransitions = useCallback((newSessions: Session[]) => {
     const prev = prevStatusMap.current;
@@ -30,10 +36,44 @@ export function useSessionSocket() {
     for (const session of newSessions) {
       const oldStatus = prev.get(session.sessionId);
       if (oldStatus && oldStatus !== session.status) {
+        // Session went back to working — cancel any pending notification
+        if (session.status === "working") {
+          const pending = pendingNotifications.current.get(session.sessionId);
+          if (pending) {
+            clearTimeout(pending);
+            pendingNotifications.current.delete(session.sessionId);
+          }
+          lastNotifiedStatus.current.delete(session.sessionId);
+          prev.set(session.sessionId, session.status);
+          continue;
+        }
+
         const getMessage = ALERT_TRANSITIONS[session.status];
         if (getMessage) {
+          // Skip idle if we already notified waiting for this work cycle
+          if (session.status === "idle" && lastNotifiedStatus.current.get(session.sessionId) === "waiting") {
+            prev.set(session.sessionId, session.status);
+            continue;
+          }
+
+          // Cancel any existing pending notification for this session
+          const existing = pendingNotifications.current.get(session.sessionId);
+          if (existing) clearTimeout(existing);
+
+          // Schedule notification after delay — if the status sticks, it fires
+          const sid = session.sessionId;
+          const status = session.status;
           const body = getMessage(session);
-          if (body) notify("Herdmode", body);
+          if (body) {
+            pendingNotifications.current.set(
+              sid,
+              setTimeout(() => {
+                pendingNotifications.current.delete(sid);
+                lastNotifiedStatus.current.set(sid, status);
+                notify("Herdmode", body);
+              }, NOTIFY_DELAY_MS)
+            );
+          }
         }
       }
     }
