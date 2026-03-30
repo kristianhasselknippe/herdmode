@@ -1,4 +1,11 @@
-import type { Session } from "../types";
+import type { Session, SessionStatus } from "../types";
+
+const STATUS_CONFIG: Record<SessionStatus, { label: string; className: string }> = {
+  working: { label: "Working", className: "working" },
+  waiting: { label: "Waiting", className: "waiting" },
+  idle: { label: "Idle", className: "idle" },
+  ended: { label: "Ended", className: "ended" },
+};
 
 function timeAgo(ms: number): string {
   const seconds = Math.floor((Date.now() - ms) / 1000);
@@ -31,8 +38,8 @@ export function SessionCard({ session, selected, onSelect }: Props) {
     >
       <div className="session-card-header">
         <h3>{session.projectName}</h3>
-        <span className={`status-badge ${session.isAlive ? "alive" : "ended"}`}>
-          {session.isAlive ? "Active" : "Ended"}
+        <span className={`status-badge ${STATUS_CONFIG[session.status].className}`}>
+          {STATUS_CONFIG[session.status].label}
         </span>
       </div>
       <div className="session-card-meta">

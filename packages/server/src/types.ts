@@ -7,6 +7,8 @@ export interface Task {
   blockedBy: string[];
 }
 
+export type SessionStatus = "working" | "waiting" | "idle" | "ended";
+
 export interface Session {
   pid: number;
   sessionId: string;
@@ -17,10 +19,12 @@ export interface Session {
   entrypoint: string;
   name?: string;
   isAlive: boolean;
+  status: SessionStatus;
   gitBranch?: string;
   tasks: Task[];
   recentMessageCount: number;
   tokenUsage: number;
+  lastActivityAt?: number;
 }
 
 export interface RawSessionFile {

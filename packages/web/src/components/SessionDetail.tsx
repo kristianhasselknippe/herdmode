@@ -25,11 +25,26 @@ interface Props {
   session: Session;
 }
 
+function focusSession(pid: number) {
+  fetch(`/api/sessions/${pid}/focus`, { method: "POST" });
+}
+
 export function SessionDetail({ session }: Props) {
   return (
     <div className="detail-panel">
       <div className="detail-header">
-        <h2>{session.projectName}</h2>
+        <div className="detail-title-row">
+          <h2>{session.projectName}</h2>
+          {session.isAlive && (
+            <button
+              className="focus-btn"
+              onClick={() => focusSession(session.pid)}
+              title="Focus terminal window"
+            >
+              Focus Terminal
+            </button>
+          )}
+        </div>
         <div className="detail-meta">
           <span>
             Path: <code>{session.cwd}</code>
@@ -39,6 +54,7 @@ export function SessionDetail({ session }: Props) {
             <code>{session.pid}</code>
           </span>
           <span>
+            Status: <strong>{session.status}</strong> &middot;{" "}
             {session.entrypoint} &middot; {session.kind}
             {session.gitBranch && <> &middot; {session.gitBranch}</>}
           </span>

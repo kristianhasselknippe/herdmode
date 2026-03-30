@@ -4,10 +4,13 @@ import { homedir } from "node:os";
 
 const PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
-interface ProjectData {
+export interface ProjectData {
   gitBranch?: string;
   messageCount: number;
   tokenUsage: number;
+  lastMessageType?: string;
+  lastStopReason?: string;
+  lastActivityAt?: number;
 }
 
 function encodePath(cwd: string): string {
@@ -32,12 +35,22 @@ export async function getProjectData(
   let gitBranch: string | undefined;
   let messageCount = 0;
   let tokenUsage = 0;
+  let lastMessageType: string | undefined;
+  let lastStopReason: string | undefined;
+  let lastActivityAt: number | undefined;
 
   for (const line of lines) {
     try {
       const entry = JSON.parse(line);
       if (entry.type === "user" || entry.type === "assistant") {
         messageCount++;
+        lastMessageType = entry.type;
+        if (entry.type === "assistant") {
+          lastStopReason = entry.message?.stop_reason;
+        }
+        if (entry.timestamp) {
+          lastActivityAt = new Date(entry.timestamp).getTime();
+        }
       }
       if (entry.gitBranch && entry.gitBranch !== "HEAD") {
         gitBranch = entry.gitBranch;
@@ -52,5 +65,5 @@ export async function getProjectData(
     }
   }
 
-  return { gitBranch, messageCount, tokenUsage };
+  return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt };
 }

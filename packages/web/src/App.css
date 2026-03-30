@@ -80,8 +80,16 @@ body {
 }
 
 .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
-.status-badge.alive { background: rgba(78, 204, 163, 0.15); color: var(--active); }
+.status-badge.working { background: rgba(78, 204, 163, 0.15); color: var(--active); }
+.status-badge.waiting { background: rgba(241, 196, 15, 0.15); color: #f1c40f; }
+.status-badge.idle { background: rgba(136, 146, 164, 0.1); color: var(--text-dim); }
 .status-badge.ended { background: rgba(136, 146, 164, 0.15); color: var(--text-dim); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.status-badge.working { animation: pulse 2s ease-in-out infinite; }
 
 .session-card-meta {
   display: flex; flex-wrap: wrap; gap: 8px;
@@ -107,7 +115,21 @@ body {
 }
 
 .detail-header { margin-bottom: 24px; }
-.detail-header h2 { font-size: 20px; margin-bottom: 8px; }
+.detail-title-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.detail-title-row h2 { font-size: 20px; }
+
+.focus-btn {
+  font-size: 12px; padding: 6px 14px; border-radius: 6px;
+  border: 1px solid var(--active); background: transparent;
+  color: var(--active); cursor: pointer; font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+.focus-btn:hover {
+  background: var(--active); color: var(--bg);
+}
 
 .detail-meta {
   display: flex; flex-direction: column; gap: 4px;
