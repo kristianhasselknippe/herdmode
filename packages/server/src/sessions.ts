@@ -17,6 +17,7 @@ function isProcessAlive(pid: number): boolean {
 }
 
 const IDLE_THRESHOLD_MS = 60_000; // 1 minute without activity = idle
+const TOOL_APPROVAL_THRESHOLD_MS = 10_000; // 10s without follow-up = likely waiting for approval
 
 function deriveStatus(alive: boolean, projectData: ProjectData): SessionStatus {
   if (!alive) return "ended";
@@ -35,8 +36,12 @@ function deriveStatus(alive: boolean, projectData: ProjectData): SessionStatus {
     return "working";
   }
 
-  // Last message was assistant with tool_use → agent is mid-work (calling tools)
+  // Last message was assistant with tool_use → could be mid-work or waiting for approval.
+  // If the tool was auto-approved and executed, a user message with the result would
+  // follow quickly. A long gap means the user hasn't approved the tool yet.
   if (lastMessageType === "assistant" && lastStopReason === "tool_use") {
+    if (timeSinceActivity > IDLE_THRESHOLD_MS) return "idle";
+    if (timeSinceActivity > TOOL_APPROVAL_THRESHOLD_MS) return "waiting";
     return "working";
   }
 
