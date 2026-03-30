@@ -33,7 +33,7 @@ export function SessionCard({ session, selected, onSelect }: Props) {
 
   return (
     <div
-      className={`session-card ${selected ? "selected" : ""}`}
+      className={`session-card status-${session.status} ${selected ? "selected" : ""}`}
       onClick={onSelect}
     >
       <div className="session-card-header">

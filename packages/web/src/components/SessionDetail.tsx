@@ -71,7 +71,7 @@ export function SessionDetail({ session }: Props) {
           <div className="task-list">
             {session.tasks.map((task) => (
               <div key={task.id} className="task-item">
-                <span className="task-icon">{taskIcon(task.status)}</span>
+                <span className={`task-icon ${task.status}`}>{taskIcon(task.status)}</span>
                 <span>{task.subject}</span>
               </div>
             ))}
