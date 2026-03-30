@@ -2,7 +2,7 @@ import { watch } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import type { ServerWebSocket } from "bun";
+import type { WebSocket } from "ws";
 import { readAllSessions } from "./sessions";
 
 const CLAUDE_DIR = join(homedir(), ".claude");
@@ -10,13 +10,13 @@ const SESSIONS_DIR = join(CLAUDE_DIR, "sessions");
 const PROJECTS_DIR = join(CLAUDE_DIR, "projects");
 const TASKS_DIR = join(CLAUDE_DIR, "tasks");
 
-const clients = new Set<ServerWebSocket<unknown>>();
+const clients = new Set<WebSocket>();
 
-export function addClient(ws: ServerWebSocket<unknown>) {
+export function addClient(ws: WebSocket) {
   clients.add(ws);
 }
 
-export function removeClient(ws: ServerWebSocket<unknown>) {
+export function removeClient(ws: WebSocket) {
   clients.delete(ws);
 }
 
@@ -26,7 +26,6 @@ async function broadcast() {
   if (clients.size === 0) return;
   const sessions = await readAllSessions();
   const message = JSON.stringify({ type: "sessions-updated", sessions });
-  // Only send if data actually changed
   if (message === lastSnapshot) return;
   lastSnapshot = message;
   for (const ws of clients) {
@@ -73,18 +72,9 @@ async function watchTaskSubdirs() {
 }
 
 export function startWatcher() {
-  // Watch session files for new/removed sessions
   watchDir(SESSIONS_DIR, "sessions");
-
-  // Watch project conversation files for status changes
   watchProjectSubdirs();
-
-  // Watch task files
   watchTaskSubdirs();
-
-  // Poll every 2s as a reliable fallback — fs.watch can miss events
-  // on some filesystems or for deeply nested changes
   setInterval(broadcast, 2000);
-
   console.log("File watchers started + 2s polling fallback");
 }
