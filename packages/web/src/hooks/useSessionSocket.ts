@@ -16,6 +16,7 @@ function notify(title: string, body: string) {
 const ALERT_TRANSITIONS: Record<string, (session: Session) => string | null> = {
   waiting: (s) => `${s.projectName} is waiting for your input`,
   idle: (s) => `${s.projectName} has gone idle`,
+  waiting_on_agent: (s) => `${s.projectName} is waiting on a sub-agent`,
 };
 
 // Delay before firing a notification, so rapid status flickers

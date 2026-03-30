@@ -192,6 +192,10 @@ body {
   border-left-color: var(--waiting-color);
 }
 
+.session-card.status-waiting_on_agent {
+  border-left-color: #8e99ff;
+}
+
 .session-card.status-idle {
   border-left-color: var(--text-dim);
 }
@@ -264,6 +268,17 @@ body {
 .status-badge.waiting::before {
   background: var(--waiting-color);
   box-shadow: 0 0 4px var(--waiting-glow);
+}
+
+.status-badge.waiting-on-agent {
+  background: rgba(130, 140, 255, 0.1);
+  color: #8e99ff;
+}
+
+.status-badge.waiting-on-agent::before {
+  background: #8e99ff;
+  box-shadow: 0 0 4px rgba(130, 140, 255, 0.5);
+  animation: pulse-dot 1.8s ease-in-out infinite;
 }
 
 .status-badge.idle {
@@ -562,6 +577,184 @@ body {
   color: var(--text-dim);
   text-align: center;
   line-height: 1.5;
+}
+
+/* ---- GitHub PR Card ---- */
+
+.pr-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.pr-card:hover {
+  border-color: var(--border);
+}
+
+.pr-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pr-card-header h4 {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.pr-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pr-state-badge {
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.pr-state-badge.open {
+  background: rgba(78, 204, 163, 0.12);
+  color: var(--active);
+}
+
+.pr-state-badge.merged {
+  background: rgba(130, 80, 223, 0.12);
+  color: #a78bfa;
+}
+
+.pr-state-badge.closed {
+  background: rgba(107, 112, 132, 0.1);
+  color: var(--text-dim);
+}
+
+.pr-refresh-btn {
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+}
+
+.pr-refresh-btn:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
+}
+
+.pr-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.pr-title:hover {
+  color: var(--active);
+}
+
+.pr-checks-section {
+  margin-bottom: 10px;
+}
+
+.pr-checks-summary {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.pr-checks-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pr-check-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-hover);
+  color: var(--text-dim);
+}
+
+.pr-check-icon {
+  font-size: 10px;
+}
+
+.pr-check-item.success {
+  color: var(--active);
+}
+
+.pr-check-item.failure {
+  color: var(--danger);
+}
+
+.pr-check-item.pending {
+  color: var(--waiting-color);
+}
+
+.pr-check-item.neutral {
+  color: var(--text-dim);
+}
+
+.pr-review {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-hover);
+}
+
+.pr-review.approved {
+  color: var(--active);
+}
+
+.pr-review.changes {
+  color: var(--waiting-color);
+}
+
+/* ---- CI Status Dot (Session Card) ---- */
+
+.ci-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.ci-dot.passing {
+  background: var(--active);
+  box-shadow: 0 0 4px var(--active-glow);
+}
+
+.ci-dot.failing {
+  background: var(--danger);
+  box-shadow: 0 0 4px rgba(231, 76, 60, 0.4);
+}
+
+.ci-dot.pending {
+  background: var(--waiting-color);
+  box-shadow: 0 0 4px var(--waiting-glow);
 }
 
 /* ---- Responsive ---- */

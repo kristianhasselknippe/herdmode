@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import type { RawSessionFile, Session, SessionStatus } from "./types";
 import { getTasksForSession } from "./tasks";
 import { getProjectData, type ProjectData } from "./projects";
+import { getCachedPR } from "./github";
 
 const SESSIONS_DIR = join(homedir(), ".claude", "sessions");
 
@@ -22,7 +23,7 @@ const TOOL_APPROVAL_THRESHOLD_MS = 10_000; // 10s without follow-up = likely wai
 function deriveStatus(alive: boolean, projectData: ProjectData): SessionStatus {
   if (!alive) return "ended";
 
-  const { lastMessageType, lastStopReason, lastActivityAt } = projectData;
+  const { lastMessageType, lastStopReason, lastActivityAt, lastToolName } = projectData;
 
   // If we have no conversation data yet, session just started
   if (!lastMessageType) return "waiting";
@@ -40,8 +41,15 @@ function deriveStatus(alive: boolean, projectData: ProjectData): SessionStatus {
   // If the tool was auto-approved and executed, a user message with the result would
   // follow quickly. A long gap means the user hasn't approved the tool yet.
   if (lastMessageType === "assistant" && lastStopReason === "tool_use") {
-    if (timeSinceActivity > IDLE_THRESHOLD_MS) return "idle";
-    if (timeSinceActivity > TOOL_APPROVAL_THRESHOLD_MS) return "waiting";
+    if (timeSinceActivity > IDLE_THRESHOLD_MS) {
+      // If the last tool was Agent, the session is waiting on a sub-agent
+      if (lastToolName === "Agent") return "waiting_on_agent";
+      return "idle";
+    }
+    if (timeSinceActivity > TOOL_APPROVAL_THRESHOLD_MS) {
+      if (lastToolName === "Agent") return "waiting_on_agent";
+      return "waiting";
+    }
     return "working";
   }
 
@@ -91,6 +99,9 @@ export async function readAllSessions(): Promise<Session[]> {
         recentMessageCount: projectData.messageCount,
         tokenUsage: projectData.tokenUsage,
         lastActivityAt: projectData.lastActivityAt,
+        pullRequest: projectData.gitBranch
+          ? getCachedPR(raw.cwd, projectData.gitBranch)
+          : undefined,
       });
     } catch {
       // skip malformed files

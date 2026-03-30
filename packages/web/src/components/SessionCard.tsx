@@ -4,6 +4,7 @@ const STATUS_CONFIG: Record<SessionStatus, { label: string; className: string }>
   working: { label: "Working", className: "working" },
   waiting: { label: "Waiting", className: "waiting" },
   idle: { label: "Idle", className: "idle" },
+  waiting_on_agent: { label: "Waiting on Agent", className: "waiting-on-agent" },
   ended: { label: "Ended", className: "ended" },
 };
 
@@ -45,7 +46,14 @@ export function SessionCard({ session, selected, onSelect }: Props) {
       <div className="session-card-meta">
         <span>{timeAgo(session.startedAt)}</span>
         {session.gitBranch && (
-          <span className="tag">{session.gitBranch}</span>
+          <>
+            <span className="tag">
+              {session.pullRequest && (
+                <span className={`ci-dot ${session.pullRequest.checksPassing === true ? "passing" : session.pullRequest.checksPassing === false ? "failing" : "pending"}`} />
+              )}
+              {session.gitBranch}
+            </span>
+          </>
         )}
         <span>{session.recentMessageCount} messages</span>
         {totalTasks > 0 && (

@@ -11,6 +11,7 @@ export interface ProjectData {
   lastMessageType?: string;
   lastStopReason?: string;
   lastActivityAt?: number;
+  lastToolName?: string;
 }
 
 function encodePath(cwd: string): string {
@@ -38,6 +39,7 @@ export async function getProjectData(
   let lastMessageType: string | undefined;
   let lastStopReason: string | undefined;
   let lastActivityAt: number | undefined;
+  let lastToolName: string | undefined;
 
   for (const line of lines) {
     try {
@@ -47,6 +49,15 @@ export async function getProjectData(
         lastMessageType = entry.type;
         if (entry.type === "assistant") {
           lastStopReason = entry.message?.stop_reason;
+          // Track the last tool name from tool_use content blocks
+          const content = entry.message?.content;
+          if (Array.isArray(content)) {
+            for (const block of content) {
+              if (block.type === "tool_use" && block.name) {
+                lastToolName = block.name;
+              }
+            }
+          }
         }
         if (entry.timestamp) {
           lastActivityAt = new Date(entry.timestamp).getTime();
@@ -65,5 +76,5 @@ export async function getProjectData(
     }
   }
 
-  return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt };
+  return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt, lastToolName };
 }

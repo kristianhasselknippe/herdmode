@@ -7,7 +7,25 @@ export interface Task {
   blockedBy: string[];
 }
 
-export type SessionStatus = "working" | "waiting" | "idle" | "ended";
+export type SessionStatus = "working" | "waiting" | "idle" | "waiting_on_agent" | "ended";
+
+export interface CheckRun {
+  name: string;
+  status: "queued" | "in_progress" | "completed";
+  conclusion: "success" | "failure" | "neutral" | "cancelled" | "skipped" | "timed_out" | null;
+}
+
+export type ReviewDecision = "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
+
+export interface PullRequestData {
+  number: number;
+  title: string;
+  url: string;
+  state: "open" | "closed" | "merged";
+  reviewDecision: ReviewDecision;
+  checks: CheckRun[];
+  checksPassing: boolean | null;
+}
 
 export interface Session {
   pid: number;
@@ -25,6 +43,7 @@ export interface Session {
   recentMessageCount: number;
   tokenUsage: number;
   lastActivityAt?: number;
+  pullRequest?: PullRequestData;
 }
 
 export interface RawSessionFile {
