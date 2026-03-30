@@ -22,9 +22,9 @@ function startServer() {
     : join(__dirname, "..", "..", "web", "dist");
 
   const honoApp = createApp(webRoot);
-  const server = serve({ fetch: honoApp.fetch, port: PORT });
+  const httpServer = serve({ fetch: honoApp.fetch, port: PORT });
 
-  const wss = new WebSocketServer({ server });
+  const wss = new WebSocketServer({ server: httpServer as any });
   wss.on("connection", (ws) => {
     addClient(ws);
     ws.on("close", () => removeClient(ws));
@@ -32,7 +32,7 @@ function startServer() {
 
   startWatcher();
   console.log(`Herdmode server running on http://localhost:${PORT}`);
-  return server;
+  return httpServer;
 }
 
 function createWindow() {
@@ -51,7 +51,7 @@ function createWindow() {
   mainWindow.loadURL(`http://localhost:${PORT}`);
 
   mainWindow.on("close", (e) => {
-    if (!app.isQuitting) {
+    if (!isQuitting) {
       e.preventDefault();
       mainWindow?.hide();
     }
@@ -77,7 +77,7 @@ function createTray() {
     {
       label: "Quit",
       click: () => {
-        app.isQuitting = true;
+        isQuitting = true;
         app.quit();
       },
     },
@@ -104,7 +104,7 @@ function createMenu() {
           label: "Quit",
           accelerator: "CmdOrCtrl+Q",
           click: () => {
-            app.isQuitting = true;
+            isQuitting = true;
             app.quit();
           },
         },
@@ -143,13 +143,7 @@ function createMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-declare module "electron" {
-  interface App {
-    isQuitting: boolean;
-  }
-}
-
-app.isQuitting = false;
+let isQuitting = false;
 
 app.whenReady().then(() => {
   startServer();

@@ -2,7 +2,7 @@
   "name": "server",
   "private": true,
   "scripts": {
-    "dev": "npx tsx --watch src/index.ts"
+    "dev": "bunx tsx --watch src/index.ts"
   },
   "dependencies": {
     "hono": "^4",

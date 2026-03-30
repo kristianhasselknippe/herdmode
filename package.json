@@ -6,7 +6,7 @@
     "dev": "bun run --filter '*' dev",
     "dev:server": "bun run --filter server dev",
     "dev:web": "bun run --filter web dev",
-    "dev:desktop": "cd packages/web && npx vite build && cd ../desktop && npm run build:ts && npm run dev",
-    "build": "cd packages/desktop && npm run dist"
+    "dev:desktop": "cd packages/web && bun run build && cd ../desktop && bun run build:ts && bun run dev",
+    "build": "cd packages/desktop && bun run dist"
   }
 }

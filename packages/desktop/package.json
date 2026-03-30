@@ -5,10 +5,10 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "electron dist/main.js",
-    "build:ts": "tsc",
-    "build:web": "cd ../web && npx vite build",
-    "build": "npm run build:web && npm run build:ts",
-    "dist": "npm run build && electron-builder",
+    "build:ts": "esbuild src/main.ts src/preload.ts --bundle --platform=node --outdir=dist --external:electron",
+    "build:web": "cd ../web && bun run build",
+    "build": "bun run build:web && bun run build:ts",
+    "dist": "bun run build && bunx electron-builder",
     "start": "electron ."
   },
   "dependencies": {
@@ -19,6 +19,7 @@
   "devDependencies": {
     "electron": "^35",
     "electron-builder": "^26",
+    "esbuild": "^0.27",
     "@types/ws": "^8",
     "typescript": "^5"
   }
