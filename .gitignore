@@ -3,3 +3,17 @@ dist/
 release/
 .vite/
 bun.lock
+
+# Electron
+packages/desktop/release/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
