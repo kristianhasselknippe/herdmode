@@ -3,7 +3,7 @@ import { join, basename } from "node:path";
 import { homedir } from "node:os";
 import type { RawSessionFile, Session, SessionStatus } from "./types";
 import { getTasksForSession } from "./tasks";
-import { getProjectData, type ProjectData } from "./projects";
+import { getProjectData, isSubAgentWaiting, type ProjectData } from "./projects";
 import { getCachedPR } from "./github";
 
 export const SESSIONS_DIR = join(homedir(), ".claude", "sessions");
@@ -83,6 +83,15 @@ export async function readAllSessions(): Promise<Session[]> {
       const projectData = await getProjectData(raw.cwd, raw.sessionId);
 
       const alive = isProcessAlive(raw.pid);
+      let status = deriveStatus(alive, projectData);
+
+      // If session is waiting on a sub-agent, check if that sub-agent
+      // is itself waiting for tool approval — if so, the user needs to act
+      if (status === "waiting_on_agent") {
+        const agentWaiting = await isSubAgentWaiting(raw.cwd, raw.sessionId);
+        if (agentWaiting) status = "waiting";
+      }
+
       sessions.push({
         pid: raw.pid,
         sessionId: raw.sessionId,
@@ -93,7 +102,7 @@ export async function readAllSessions(): Promise<Session[]> {
         entrypoint: raw.entrypoint,
         name: raw.name,
         isAlive: alive,
-        status: deriveStatus(alive, projectData),
+        status,
         gitBranch: projectData.gitBranch,
         tasks,
         recentMessageCount: projectData.messageCount,

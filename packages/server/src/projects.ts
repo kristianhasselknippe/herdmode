@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
@@ -137,6 +137,82 @@ export async function getProjectData(
   }
 
   return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt, lastToolName, hasAgentTool, model };
+}
+
+/**
+ * Check if any sub-agent for this session is waiting for tool approval.
+ * Scans agent-*.jsonl files, finds the most recently active one for this session,
+ * and checks if its last assistant message has stop_reason: "tool_use" with a time gap.
+ */
+export async function isSubAgentWaiting(
+  cwd: string,
+  sessionId: string
+): Promise<boolean> {
+  const projectDir = join(PROJECTS_DIR, encodePath(cwd));
+
+  let files: string[];
+  try {
+    files = await readdir(projectDir);
+  } catch {
+    return false;
+  }
+
+  const agentFiles = files.filter((f) => f.startsWith("agent-") && f.endsWith(".jsonl"));
+  if (agentFiles.length === 0) return false;
+
+  // Find agent files that belong to this session, sorted by modification time (most recent first)
+  const candidates: Array<{ path: string; mtime: number }> = [];
+  for (const f of agentFiles) {
+    const fullPath = join(projectDir, f);
+    try {
+      const s = await stat(fullPath);
+      candidates.push({ path: fullPath, mtime: s.mtimeMs });
+    } catch {
+      continue;
+    }
+  }
+  candidates.sort((a, b) => b.mtime - a.mtime);
+
+  // Check the most recently modified agent files (limit to 5 to avoid scanning all)
+  for (const { path: agentPath } of candidates.slice(0, 5)) {
+    let content: string;
+    try {
+      content = await readFile(agentPath, "utf-8");
+    } catch {
+      continue;
+    }
+
+    const lines = content.trim().split("\n");
+    if (lines.length === 0) continue;
+
+    // Check if this agent belongs to our session (first entry has sessionId)
+    try {
+      const first = JSON.parse(lines[0]);
+      if (first.sessionId !== sessionId) continue;
+    } catch {
+      continue;
+    }
+
+    // Check the last entry
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const entry = JSON.parse(lines[i]);
+        if (entry.type !== "assistant") continue;
+
+        if (entry.message?.stop_reason === "tool_use") {
+          const ts = entry.timestamp ? new Date(entry.timestamp).getTime() : 0;
+          if (ts && Date.now() - ts > 10_000) {
+            return true;
+          }
+        }
+        break; // Only check the last assistant message
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  return false;
 }
 
 function extractText(message: any): string {
