@@ -23,7 +23,7 @@ const TOOL_APPROVAL_THRESHOLD_MS = 10_000; // 10s without follow-up = likely wai
 export function deriveStatus(alive: boolean, projectData: ProjectData): SessionStatus {
   if (!alive) return "ended";
 
-  const { lastMessageType, lastStopReason, lastActivityAt, lastToolName } = projectData;
+  const { lastMessageType, lastStopReason, lastActivityAt, lastToolName, hasAgentTool } = projectData;
 
   // If we have no conversation data yet, session just started
   if (!lastMessageType) return "waiting";
@@ -42,12 +42,12 @@ export function deriveStatus(alive: boolean, projectData: ProjectData): SessionS
   // follow quickly. A long gap means the user hasn't approved the tool yet.
   if (lastMessageType === "assistant" && lastStopReason === "tool_use") {
     if (timeSinceActivity > IDLE_THRESHOLD_MS) {
-      // If the last tool was Agent, the session is waiting on a sub-agent
-      if (lastToolName === "Agent") return "waiting_on_agent";
+      // If any tool in the message was Agent, the session is waiting on a sub-agent
+      if (hasAgentTool) return "waiting_on_agent";
       return "idle";
     }
     if (timeSinceActivity > TOOL_APPROVAL_THRESHOLD_MS) {
-      if (lastToolName === "Agent") return "waiting_on_agent";
+      if (hasAgentTool) return "waiting_on_agent";
       return "waiting";
     }
     return "working";

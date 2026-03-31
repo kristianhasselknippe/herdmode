@@ -16,7 +16,6 @@ function notify(title: string, body: string) {
 const ALERT_TRANSITIONS: Record<string, (session: Session) => string | null> = {
   waiting: (s) => `${s.projectName} is waiting for your input`,
   idle: (s) => `${s.projectName} has gone idle`,
-  waiting_on_agent: (s) => `${s.projectName} is waiting on a sub-agent`,
 };
 
 // Delay before firing a notification, so rapid status flickers
@@ -37,8 +36,8 @@ export function useSessionSocket() {
     for (const session of newSessions) {
       const oldStatus = prev.get(session.sessionId);
       if (oldStatus && oldStatus !== session.status) {
-        // Session went back to working — cancel any pending notification
-        if (session.status === "working") {
+        // Session went back to working or is waiting on a sub-agent — cancel any pending notification
+        if (session.status === "working" || session.status === "waiting_on_agent") {
           const pending = pendingNotifications.current.get(session.sessionId);
           if (pending) {
             clearTimeout(pending);

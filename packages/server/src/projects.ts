@@ -17,6 +17,7 @@ export interface ProjectData {
   lastStopReason?: string;
   lastActivityAt?: number;
   lastToolName?: string;
+  hasAgentTool?: boolean;
   model?: string;
 }
 
@@ -84,6 +85,7 @@ export async function getProjectData(
   let lastStopReason: string | undefined;
   let lastActivityAt: number | undefined;
   let lastToolName: string | undefined;
+  let hasAgentTool = false;
   let model: string | undefined;
 
   for (let i = lastRootIndex; i < lines.length; i++) {
@@ -98,12 +100,16 @@ export async function getProjectData(
           if (entry.message?.model) {
             model = entry.message.model;
           }
-          // Track the last tool name from tool_use content blocks
+          // Track tool names from tool_use content blocks
+          hasAgentTool = false;
           const content = entry.message?.content;
           if (Array.isArray(content)) {
             for (const block of content) {
               if (block.type === "tool_use" && block.name) {
                 lastToolName = block.name;
+                if (block.name === "Agent") {
+                  hasAgentTool = true;
+                }
               }
             }
           }
@@ -130,7 +136,7 @@ export async function getProjectData(
     gitBranch = await getGitBranch(cwd);
   }
 
-  return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt, lastToolName, model };
+  return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt, lastToolName, hasAgentTool, model };
 }
 
 function extractText(message: any): string {
