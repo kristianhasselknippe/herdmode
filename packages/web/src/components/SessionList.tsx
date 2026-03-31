@@ -16,11 +16,19 @@ export function SessionList({ sessions, selectedId, onSelect, width }: Props) {
 
   const activeSessions = sessions.filter((s) => s.status !== "ended");
   const historySessions = sessions.filter((s) => s.status === "ended");
+  const workingCount = activeSessions.filter((s) => s.status === "working").length;
 
   const displayed = tab === "active" ? activeSessions : historySessions;
 
   return (
     <div className="session-list" style={{ width, minWidth: width }}>
+      <div className="sidebar-header">
+        <div className="sidebar-header-icon">⬡</div>
+        <div>
+          <div className="sidebar-header-title">Active Sessions</div>
+          <div className="sidebar-header-subtitle">{workingCount} AGENTS RUNNING</div>
+        </div>
+      </div>
       <div className="session-tabs">
         <button
           className={`session-tab ${tab === "active" ? "active" : ""}`}
