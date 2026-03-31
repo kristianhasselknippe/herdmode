@@ -35,6 +35,22 @@ export interface PullRequestData {
   checksPassing: boolean | null;
 }
 
+export interface TimelineSegment {
+  startTime: number;
+  endTime: number;
+  status: "working" | "waiting" | "idle";
+  tokens: number;
+  hasAgentSpawn: boolean;
+  hasUserMessage: boolean;
+}
+
+export interface TimelineData {
+  sessionStart: number;
+  sessionEnd: number;
+  maxTokens: number;
+  segments: TimelineSegment[];
+}
+
 export interface Session {
   pid?: number;
   sessionId: string;

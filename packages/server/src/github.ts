@@ -155,7 +155,16 @@ export function startGitHubPolling(
     if (changed) onUpdate();
   }
 
-  setInterval(poll, POLL_INTERVAL_MS);
+  githubPollTimer = setInterval(poll, POLL_INTERVAL_MS);
   // Run first poll after a short delay to let sessions load first
   setTimeout(poll, 3_000);
+}
+
+let githubPollTimer: ReturnType<typeof setInterval> | null = null;
+
+export function stopGitHubPolling() {
+  if (githubPollTimer) {
+    clearInterval(githubPollTimer);
+    githubPollTimer = null;
+  }
 }

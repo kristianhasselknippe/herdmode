@@ -3,7 +3,7 @@ import type { WebSocket } from "ws";
 import { getAllSessions, getAllWatchPaths, registerProvider } from "./providers";
 import { ClaudeProvider, getClaudeExtraWatchPaths } from "./providers/claude";
 import { OpencodeProvider } from "./providers/opencode";
-import { startGitHubPolling } from "./github";
+import { startGitHubPolling, stopGitHubPolling } from "./github";
 
 const clients = new Set<WebSocket>();
 
@@ -29,6 +29,7 @@ async function broadcast() {
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
 function scheduleBroadcast() {
   if (debounceTimer) clearTimeout(debounceTimer);
@@ -60,7 +61,7 @@ export async function startWatcher() {
     watchDir(path, path);
   }
 
-  setInterval(broadcast, 2000);
+  pollingInterval = setInterval(broadcast, 2000);
 
   startGitHubPolling(
     () => {
@@ -85,4 +86,20 @@ export async function startWatcher() {
   );
 
   console.log("File watchers started + 2s polling fallback");
+}
+
+export function stopWatcher() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  stopGitHubPolling();
+  for (const ws of clients) {
+    ws.close();
+  }
+  clients.clear();
 }

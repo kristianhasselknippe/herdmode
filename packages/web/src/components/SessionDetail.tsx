@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { Session, Task, ChatMessage } from "../types";
+import { SessionTimeline } from "./SessionTimeline";
 import { GitHubPR } from "./integrations/GitHubPR";
 import { LinearStub } from "./integrations/LinearStub";
 import { NotionStub } from "./integrations/NotionStub";
@@ -122,6 +123,9 @@ export function SessionDetail({ session }: Props) {
           )}
         </div>
       </div>
+
+      {/* Session Timeline */}
+      <SessionTimeline session={session} />
 
       {/* Two-column body */}
       <div className="detail-columns">

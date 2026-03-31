@@ -56,6 +56,22 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export interface TimelineSegment {
+  startTime: number;
+  endTime: number;
+  status: "working" | "waiting" | "idle";
+  tokens: number;
+  hasAgentSpawn: boolean;
+  hasUserMessage: boolean;
+}
+
+export interface TimelineData {
+  sessionStart: number;
+  sessionEnd: number;
+  maxTokens: number;
+  segments: TimelineSegment[];
+}
+
 export interface RawSessionFile {
   pid: number;
   sessionId: string;

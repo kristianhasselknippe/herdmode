@@ -4,7 +4,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { getAllSessions } from "./providers";
 import { focusSessionWindow } from "./focus";
 import { forceRefreshPR } from "./github";
-import { getSessionMessages } from "./projects";
+import { getSessionMessages, getSessionTimeline } from "./projects";
 import { getOpencodeMessages } from "./providers/opencode";
 
 export function createApp(staticRoot?: string) {
@@ -34,6 +34,18 @@ export function createApp(staticRoot?: string) {
       ? await getOpencodeMessages(session.sessionId)
       : await getSessionMessages(session.cwd, session.sessionId);
     return c.json(messages);
+  });
+
+  app.get("/api/sessions/:id/timeline", async (c) => {
+    const id = c.req.param("id");
+    const sessions = await getAllSessions();
+    const session = sessions.find((s) => s.sessionId === id);
+    if (!session) return c.json({ error: "Not found" }, 404);
+    if (session.provider === "opencode") {
+      return c.json({ sessionStart: session.startedAt, sessionEnd: session.startedAt, maxTokens: 0, segments: [] });
+    }
+    const timeline = await getSessionTimeline(session.cwd, session.sessionId, session.startedAt);
+    return c.json(timeline);
   });
 
   app.post("/api/sessions/:pid/focus", async (c) => {

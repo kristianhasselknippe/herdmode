@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import type { ChatMessage } from "./types";
+import type { ChatMessage, TimelineData, TimelineSegment } from "./types";
 
 const execFileAsync = promisify(execFile);
 
@@ -187,4 +187,121 @@ export async function getSessionMessages(
   }
 
   return messages;
+}
+
+interface TimelineEvent {
+  timestamp: number;
+  type: "user" | "assistant";
+  tokens: number;
+  stopReason?: string;
+  hasAgentSpawn: boolean;
+}
+
+const SEGMENT_COUNT = 60;
+
+export async function getSessionTimeline(
+  cwd: string,
+  sessionId: string,
+  sessionStart: number
+): Promise<TimelineData> {
+  const projectDir = join(PROJECTS_DIR, encodePath(cwd));
+  const jsonlPath = join(projectDir, `${sessionId}.jsonl`);
+
+  let content: string;
+  try {
+    content = await readFile(jsonlPath, "utf-8");
+  } catch {
+    return { sessionStart, sessionEnd: sessionStart, maxTokens: 0, segments: [] };
+  }
+
+  const lines = content.trim().split("\n");
+  const lastRootIndex = findLastConversationRoot(lines);
+
+  // Extract events from JSONL
+  const events: TimelineEvent[] = [];
+  for (let i = lastRootIndex; i < lines.length; i++) {
+    try {
+      const entry = JSON.parse(lines[i]);
+      if (entry.type !== "user" && entry.type !== "assistant") continue;
+      const ts = entry.timestamp ? new Date(entry.timestamp).getTime() : 0;
+      if (!ts) continue;
+
+      let tokens = 0;
+      let hasAgentSpawn = false;
+      let stopReason: string | undefined;
+
+      if (entry.type === "assistant") {
+        stopReason = entry.message?.stop_reason;
+        const usage = entry.message?.usage;
+        if (usage) {
+          tokens = (usage.input_tokens || 0) + (usage.output_tokens || 0);
+        }
+        const contentBlocks = entry.message?.content;
+        if (Array.isArray(contentBlocks)) {
+          for (const block of contentBlocks) {
+            if (block.type === "tool_use" && block.name === "Agent") {
+              hasAgentSpawn = true;
+            }
+          }
+        }
+      }
+
+      events.push({ timestamp: ts, type: entry.type, tokens, stopReason, hasAgentSpawn });
+    } catch {
+      // skip malformed lines
+    }
+  }
+
+  if (events.length === 0) {
+    return { sessionStart, sessionEnd: sessionStart, maxTokens: 0, segments: [] };
+  }
+
+  const sessionEnd = Math.max(events[events.length - 1].timestamp, Date.now());
+  const duration = sessionEnd - sessionStart;
+  if (duration <= 0) {
+    return { sessionStart, sessionEnd, maxTokens: 0, segments: [] };
+  }
+
+  const segmentDuration = duration / SEGMENT_COUNT;
+
+  // Bucket events into segments
+  const segments: TimelineSegment[] = [];
+  for (let i = 0; i < SEGMENT_COUNT; i++) {
+    const segStart = sessionStart + i * segmentDuration;
+    const segEnd = segStart + segmentDuration;
+
+    const segEvents = events.filter((e) => e.timestamp >= segStart && e.timestamp < segEnd);
+
+    let tokens = 0;
+    let hasAgentSpawn = false;
+    let hasUserMessage = false;
+    let lastType: string | undefined;
+    let lastStopReason: string | undefined;
+
+    for (const ev of segEvents) {
+      tokens += ev.tokens;
+      if (ev.hasAgentSpawn) hasAgentSpawn = true;
+      if (ev.type === "user") hasUserMessage = true;
+      lastType = ev.type;
+      if (ev.stopReason) lastStopReason = ev.stopReason;
+    }
+
+    // Derive status for this segment
+    let status: TimelineSegment["status"] = "idle";
+    if (segEvents.length > 0) {
+      if (lastType === "user" || lastStopReason === "tool_use") {
+        status = "working";
+      } else if (lastStopReason === "end_turn") {
+        status = "waiting";
+      } else {
+        status = "working";
+      }
+    }
+
+    segments.push({ startTime: segStart, endTime: segEnd, status, tokens, hasAgentSpawn, hasUserMessage });
+  }
+
+  const maxTokens = Math.max(...segments.map((s) => s.tokens), 1);
+
+  return { sessionStart, sessionEnd, maxTokens, segments };
 }

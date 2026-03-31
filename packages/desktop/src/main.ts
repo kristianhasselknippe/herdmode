@@ -3,11 +3,12 @@ import { join } from "node:path";
 import { serve } from "@hono/node-server";
 import { WebSocketServer } from "ws";
 import { createApp } from "../../server/src/app";
-import { addClient, removeClient, startWatcher } from "../../server/src/ws";
+import { addClient, removeClient, startWatcher, stopWatcher } from "../../server/src/ws";
 
 const PORT = 13117;
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let httpServer: ReturnType<typeof serve> | null = null;
 
 function getResourcePath(relativePath: string): string {
   if (app.isPackaged) {
@@ -22,9 +23,9 @@ function startServer() {
     : join(__dirname, "..", "..", "web", "dist");
 
   const honoApp = createApp(webRoot);
-  const httpServer = serve({ fetch: honoApp.fetch, port: PORT });
+  const server = serve({ fetch: honoApp.fetch, port: PORT });
 
-  const wss = new WebSocketServer({ server: httpServer as any });
+  const wss = new WebSocketServer({ server: server as any });
   wss.on("connection", (ws) => {
     addClient(ws);
     ws.on("close", () => removeClient(ws));
@@ -32,7 +33,7 @@ function startServer() {
 
   startWatcher();
   console.log(`Herdmode server running on http://localhost:${PORT}`);
-  return httpServer;
+  return server;
 }
 
 function createWindow() {
@@ -146,10 +147,19 @@ function createMenu() {
 let isQuitting = false;
 
 app.whenReady().then(() => {
-  startServer();
+  httpServer = startServer();
   createMenu();
   createTray();
   createWindow();
+});
+
+app.on("before-quit", () => {
+  isQuitting = true;
+  stopWatcher();
+  if (httpServer) {
+    httpServer.close();
+    httpServer = null;
+  }
 });
 
 app.on("window-all-closed", () => {
