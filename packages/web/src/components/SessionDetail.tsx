@@ -46,6 +46,7 @@ function buildBreadcrumb(cwd: string, projectName: string): string[] {
 export function SessionDetail({ session }: Props) {
   const canFocus = session.isAlive && session.pid;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,22 +129,24 @@ export function SessionDetail({ session }: Props) {
         <div className="detail-col-main">
           {messages.length > 0 && (
             <div className="detail-card">
-              <div className="detail-card-header">
-                <h3>CHAT HISTORY</h3>
+              <div className="detail-card-header clickable" onClick={() => setChatOpen(o => !o)}>
+                <h3>{chatOpen ? "▾" : "▸"} CHAT HISTORY</h3>
                 <span className={`card-status-dot status-dot-${session.status}`} />
               </div>
-              <div className="chat-history">
-                {messages.map((msg, i) => (
-                  <div key={i} className={`chat-message chat-${msg.role}`}>
-                    <div className="chat-message-header">
-                      <span className="chat-role">{msg.role === "user" ? "You" : "Assistant"}</span>
-                      {msg.timestamp && <span className="chat-time">{formatTime(msg.timestamp)}</span>}
+              {chatOpen && (
+                <div className="chat-history">
+                  {messages.map((msg, i) => (
+                    <div key={i} className={`chat-message chat-${msg.role}`}>
+                      <div className="chat-message-header">
+                        <span className="chat-role">{msg.role === "user" ? "You" : "Assistant"}</span>
+                        {msg.timestamp && <span className="chat-time">{formatTime(msg.timestamp)}</span>}
+                      </div>
+                      <div className="chat-message-text">{msg.text}</div>
                     </div>
-                    <div className="chat-message-text">{msg.text}</div>
-                  </div>
-                ))}
-                <div ref={chatEndRef} />
-              </div>
+                  ))}
+                  <div ref={chatEndRef} />
+                </div>
+              )}
             </div>
           )}
 

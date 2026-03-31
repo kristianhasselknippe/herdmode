@@ -641,6 +641,11 @@ body {
   margin-bottom: 18px;
 }
 
+.detail-card-header.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
 .detail-card-header h3 {
   font-family: var(--font-display);
   font-size: 12px;
