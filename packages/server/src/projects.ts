@@ -24,6 +24,23 @@ function encodePath(cwd: string): string {
   return cwd.replace(/\//g, "-");
 }
 
+/** Find the index of the last conversation root (user message with parentUuid: null).
+ *  This marks the start of the current conversation after /clear or /new. */
+function findLastConversationRoot(lines: string[]): number {
+  let lastRootIndex = 0;
+  for (let i = 0; i < lines.length; i++) {
+    try {
+      const entry = JSON.parse(lines[i]);
+      if (entry.type === "user" && entry.parentUuid === null) {
+        lastRootIndex = i;
+      }
+    } catch {
+      // skip malformed lines
+    }
+  }
+  return lastRootIndex;
+}
+
 async function getGitBranch(cwd: string): Promise<string | undefined> {
   try {
     const { stdout } = await execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
@@ -57,6 +74,9 @@ export async function getProjectData(
   }
 
   const lines = content.trim().split("\n");
+
+  const lastRootIndex = findLastConversationRoot(lines);
+
   let gitBranch: string | undefined;
   let messageCount = 0;
   let tokenUsage = 0;
@@ -66,7 +86,8 @@ export async function getProjectData(
   let lastToolName: string | undefined;
   let model: string | undefined;
 
-  for (const line of lines) {
+  for (let i = lastRootIndex; i < lines.length; i++) {
+    const line = lines[i];
     try {
       const entry = JSON.parse(line);
       if (entry.type === "user" || entry.type === "assistant") {
@@ -136,12 +157,14 @@ export async function getSessionMessages(
     return [];
   }
 
-  const messages: ChatMessage[] = [];
   const lines = content.trim().split("\n");
 
-  for (const line of lines) {
+  const lastRootIndex = findLastConversationRoot(lines);
+
+  const messages: ChatMessage[] = [];
+  for (let i = lastRootIndex; i < lines.length; i++) {
     try {
-      const entry = JSON.parse(line);
+      const entry = JSON.parse(lines[i]);
       if (entry.type !== "user" && entry.type !== "assistant") continue;
 
       const text = extractText(entry.message);
