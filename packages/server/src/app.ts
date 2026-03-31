@@ -4,6 +4,8 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { getAllSessions } from "./providers";
 import { focusSessionWindow } from "./focus";
 import { forceRefreshPR } from "./github";
+import { getSessionMessages } from "./projects";
+import { getOpencodeMessages } from "./providers/opencode";
 
 export function createApp(staticRoot?: string) {
   const app = new Hono();
@@ -21,6 +23,17 @@ export function createApp(staticRoot?: string) {
     const session = sessions.find((s) => s.sessionId === id);
     if (!session) return c.json({ error: "Not found" }, 404);
     return c.json(session);
+  });
+
+  app.get("/api/sessions/:id/messages", async (c) => {
+    const id = c.req.param("id");
+    const sessions = await getAllSessions();
+    const session = sessions.find((s) => s.sessionId === id);
+    if (!session) return c.json({ error: "Not found" }, 404);
+    const messages = session.provider === "opencode"
+      ? await getOpencodeMessages(session.sessionId)
+      : await getSessionMessages(session.cwd, session.sessionId);
+    return c.json(messages);
   });
 
   app.post("/api/sessions/:pid/focus", async (c) => {

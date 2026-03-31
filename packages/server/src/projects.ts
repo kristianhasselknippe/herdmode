@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import type { ChatMessage } from "./types";
 
 const execFileAsync = promisify(execFile);
 
@@ -109,4 +110,52 @@ export async function getProjectData(
   }
 
   return { gitBranch, messageCount, tokenUsage, lastMessageType, lastStopReason, lastActivityAt, lastToolName, model };
+}
+
+function extractText(message: any): string {
+  if (!message?.content) return "";
+  if (typeof message.content === "string") return message.content;
+  if (!Array.isArray(message.content)) return "";
+  return message.content
+    .filter((block: any) => block.type === "text" && block.text)
+    .map((block: any) => block.text)
+    .join("\n");
+}
+
+export async function getSessionMessages(
+  cwd: string,
+  sessionId: string
+): Promise<ChatMessage[]> {
+  const projectDir = join(PROJECTS_DIR, encodePath(cwd));
+  const jsonlPath = join(projectDir, `${sessionId}.jsonl`);
+
+  let content: string;
+  try {
+    content = await readFile(jsonlPath, "utf-8");
+  } catch {
+    return [];
+  }
+
+  const messages: ChatMessage[] = [];
+  const lines = content.trim().split("\n");
+
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line);
+      if (entry.type !== "user" && entry.type !== "assistant") continue;
+
+      const text = extractText(entry.message);
+      if (!text) continue;
+
+      messages.push({
+        role: entry.type,
+        text,
+        timestamp: entry.timestamp || "",
+      });
+    } catch {
+      // skip malformed lines
+    }
+  }
+
+  return messages;
 }

@@ -1,4 +1,5 @@
-import type { Session, Task } from "../types";
+import { useState, useEffect, useRef } from "react";
+import type { Session, Task, ChatMessage } from "../types";
 import { GitHubPR } from "./integrations/GitHubPR";
 import { LinearStub } from "./integrations/LinearStub";
 import { NotionStub } from "./integrations/NotionStub";
@@ -29,8 +30,31 @@ function focusSession(pid: number) {
   fetch(`/api/sessions/${pid}/focus`, { method: "POST" });
 }
 
+function formatTime(timestamp: string): string {
+  if (!timestamp) return "";
+  const d = new Date(timestamp);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function SessionDetail({ session }: Props) {
   const canFocus = session.isAlive && session.pid;
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/sessions/${session.sessionId}/messages`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setMessages(data);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [session.sessionId, session.lastActivityAt]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   return (
     <div className="detail-panel">
@@ -70,6 +94,24 @@ export function SessionDetail({ session }: Props) {
           </span>
         </div>
       </div>
+
+      {messages.length > 0 && (
+        <div className="section">
+          <h3>Chat History</h3>
+          <div className="chat-history">
+            {messages.map((msg, i) => (
+              <div key={i} className={`chat-message chat-${msg.role}`}>
+                <div className="chat-message-header">
+                  <span className="chat-role">{msg.role === "user" ? "You" : "Assistant"}</span>
+                  {msg.timestamp && <span className="chat-time">{formatTime(msg.timestamp)}</span>}
+                </div>
+                <div className="chat-message-text">{msg.text}</div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+        </div>
+      )}
 
       {session.tasks.length > 0 && (
         <div className="section">

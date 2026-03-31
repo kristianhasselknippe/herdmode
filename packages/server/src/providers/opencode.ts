@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import type { Session, Task, SessionStatus } from "../types";
+import type { Session, Task, SessionStatus, ChatMessage } from "../types";
 import type { SessionProvider } from "./types";
 import { getCachedPR } from "../github";
 
@@ -347,4 +347,36 @@ export class OpencodeProvider implements SessionProvider {
     if (!existsSync(OPENCODE_DIR)) return [];
     return [OPENCODE_DIR];
   }
+}
+
+export async function getOpencodeMessages(sessionId: string): Promise<ChatMessage[]> {
+  if (!existsSync(DB_PATH)) return [];
+
+  const query = `SELECT m.data as msg_data, p.data as part_data, m.time_created
+    FROM part p
+    JOIN message m ON p.message_id = m.id
+    WHERE p.session_id = '${sessionId.replace(/'/g, "''")}'
+      AND json_extract(p.data, '$.type') = 'text'
+    ORDER BY m.time_created ASC, p.time_created ASC`;
+
+  const [rows] = await queryDbBatch([query]);
+  if (!rows || rows.length === 0) return [];
+
+  const messages: ChatMessage[] = [];
+  for (const row of rows) {
+    try {
+      const msgData = JSON.parse(row.msg_data);
+      const partData = JSON.parse(row.part_data);
+      if (!partData.text) continue;
+      messages.push({
+        role: msgData.role === "user" ? "user" : "assistant",
+        text: partData.text,
+        timestamp: new Date(row.time_created).toISOString(),
+      });
+    } catch {
+      // skip malformed rows
+    }
+  }
+
+  return messages;
 }

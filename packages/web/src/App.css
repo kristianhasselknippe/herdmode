@@ -845,3 +845,74 @@ body {
   font-size: 9.5px;
   opacity: 0.8;
 }
+
+/* ---- Chat History ---- */
+
+.chat-history {
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.chat-history::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.chat-message {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.chat-user {
+  background: var(--accent);
+  border-color: var(--accent-bright);
+}
+
+.chat-assistant {
+  background: var(--surface);
+}
+
+.chat-message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.chat-role {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.chat-user .chat-role {
+  color: var(--active);
+}
+
+.chat-time {
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.chat-message-text {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

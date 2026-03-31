@@ -1,3 +1,9 @@
+export interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+  timestamp: string;
+}
+
 export interface Task {
   id: string;
   subject: string;

@@ -50,6 +50,12 @@ export interface Session {
   model?: string;
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+  timestamp: string;
+}
+
 export interface RawSessionFile {
   pid: number;
   sessionId: string;
