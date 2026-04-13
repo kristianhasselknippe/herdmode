@@ -4,6 +4,8 @@ import { homedir } from "node:os";
 import type { RawSessionFile, Session, SessionStatus } from "./types";
 import { getTasksForSession } from "./tasks";
 import { getProjectData, isSubAgentWaiting, type ProjectData } from "./projects";
+import type { HookSessionState } from "./hook-state";
+import { getHookState } from "./hook-state";
 import { getCachedPR } from "./github";
 
 export const SESSIONS_DIR = join(homedir(), ".claude", "sessions");
@@ -20,29 +22,42 @@ export function isProcessAlive(pid: number): boolean {
 const IDLE_THRESHOLD_MS = 60_000; // 1 minute without activity = idle
 const TOOL_APPROVAL_THRESHOLD_MS = 10_000; // 10s without follow-up = likely waiting for approval
 
-export function deriveStatus(alive: boolean, projectData: ProjectData): SessionStatus {
+export function deriveStatus(
+  alive: boolean,
+  projectData: ProjectData,
+  hookState?: HookSessionState
+): SessionStatus {
   if (!alive) return "ended";
 
-  const { lastMessageType, lastStopReason, lastActivityAt, lastToolName, hasAgentTool } = projectData;
+  // Hook state takes priority — no heuristics needed
+  if (hookState && !hookState.isEnded) {
+    if (hookState.isWaitingForPermission) return "waiting";
+    if (hookState.isToolRunning) return "working";
+    if (hookState.hasSubAgent) return "waiting_on_agent";
 
-  // If we have no conversation data yet, session just started
+    switch (hookState.lastEvent.event) {
+      case "UserPromptSubmit":
+        return "working";
+      case "Stop":
+        return "waiting";
+    }
+  }
+
+  // Fallback: existing JSONL-based heuristics
+  const { lastMessageType, lastStopReason, lastActivityAt, hasAgentTool } = projectData;
+
   if (!lastMessageType) return "waiting";
 
   const timeSinceActivity = lastActivityAt
     ? Date.now() - lastActivityAt
     : Infinity;
 
-  // Last message was from user → agent is processing it
   if (lastMessageType === "user") {
     return "working";
   }
 
-  // Last message was assistant with tool_use → could be mid-work or waiting for approval.
-  // If the tool was auto-approved and executed, a user message with the result would
-  // follow quickly. A long gap means the user hasn't approved the tool yet.
   if (lastMessageType === "assistant" && lastStopReason === "tool_use") {
     if (timeSinceActivity > IDLE_THRESHOLD_MS) {
-      // If any tool in the message was Agent, the session is waiting on a sub-agent
       if (hasAgentTool) return "waiting_on_agent";
       return "idle";
     }
@@ -53,13 +68,11 @@ export function deriveStatus(alive: boolean, projectData: ProjectData): SessionS
     return "working";
   }
 
-  // Last message was assistant with end_turn → finished, waiting for user
   if (lastMessageType === "assistant" && lastStopReason === "end_turn") {
     if (timeSinceActivity > IDLE_THRESHOLD_MS) return "idle";
     return "waiting";
   }
 
-  // Fallback: if recent activity, working; otherwise idle
   if (timeSinceActivity < IDLE_THRESHOLD_MS) return "waiting";
   return "idle";
 }
@@ -83,11 +96,11 @@ export async function readAllSessions(): Promise<Session[]> {
       const projectData = await getProjectData(raw.cwd, raw.sessionId);
 
       const alive = isProcessAlive(raw.pid);
-      let status = deriveStatus(alive, projectData);
+      const hookState = getHookState(raw.sessionId);
+      let status = deriveStatus(alive, projectData, hookState);
 
-      // If session is waiting on a sub-agent, check if that sub-agent
-      // is itself waiting for tool approval — if so, the user needs to act
-      if (status === "waiting_on_agent") {
+      // Only do expensive sub-agent file scanning when we don't have hook state
+      if (status === "waiting_on_agent" && !hookState) {
         const agentWaiting = await isSubAgentWaiting(raw.cwd, raw.sessionId);
         if (agentWaiting) status = "waiting";
       }
