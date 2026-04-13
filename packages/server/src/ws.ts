@@ -31,7 +31,7 @@ async function broadcast() {
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-function scheduleBroadcast() {
+export function scheduleBroadcast() {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(broadcast, 200);
 }
