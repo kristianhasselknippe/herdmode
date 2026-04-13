@@ -70,6 +70,11 @@ describe("deriveStatus with hook state", () => {
     });
     expect(deriveStatus(true, emptyProjectData, hookState)).toBe("working");
   });
+
+  test("isEnded returns ended even when process is alive", () => {
+    const hookState = makeHookState({ isEnded: true });
+    expect(deriveStatus(true, emptyProjectData, hookState)).toBe("ended");
+  });
 });
 
 describe("deriveStatus without hook state (fallback)", () => {

@@ -30,7 +30,8 @@ export function deriveStatus(
   if (!alive) return "ended";
 
   // Hook state takes priority — no heuristics needed
-  if (hookState && !hookState.isEnded) {
+  if (hookState) {
+    if (hookState.isEnded) return "ended";
     if (hookState.isWaitingForPermission) return "waiting";
     if (hookState.isToolRunning) return "working";
     if (hookState.hasSubAgent) return "waiting_on_agent";

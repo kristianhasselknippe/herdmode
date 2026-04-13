@@ -68,8 +68,15 @@ export function createApp(staticRoot?: string) {
     return c.json({ pullRequest: pr });
   });
 
+  const KNOWN_HOOK_EVENTS = new Set([
+    "UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure",
+    "Stop", "SubagentStart", "SubagentStop", "Notification",
+    "SessionStart", "SessionEnd", "TaskCreated", "TaskCompleted",
+  ]);
+
   app.post("/api/hooks/:event", async (c) => {
     const event = c.req.param("event");
+    if (!KNOWN_HOOK_EVENTS.has(event)) return c.json({ error: "Unknown event" }, 400);
     let payload: Record<string, any>;
     try {
       payload = await c.req.json();
