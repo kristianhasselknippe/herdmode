@@ -6,6 +6,8 @@ import { focusSessionWindow } from "./focus";
 import { forceRefreshPR } from "./github";
 import { getSessionMessages, getSessionTimeline } from "./projects";
 import { getOpencodeMessages } from "./providers/opencode";
+import { updateHookState } from "./hook-state";
+import { scheduleBroadcast } from "./ws";
 
 export function createApp(staticRoot?: string) {
   const app = new Hono();
@@ -64,6 +66,23 @@ export function createApp(staticRoot?: string) {
     if (!session.gitBranch) return c.json({ error: "No branch" }, 400);
     const pr = await forceRefreshPR(session.cwd, session.gitBranch);
     return c.json({ pullRequest: pr });
+  });
+
+  app.post("/api/hooks/:event", async (c) => {
+    const event = c.req.param("event");
+    let payload: Record<string, any>;
+    try {
+      payload = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON" }, 400);
+    }
+    const sessionId = payload.session_id;
+    if (!sessionId) return c.json({ error: "Missing session_id" }, 400);
+
+    updateHookState(sessionId, event, payload);
+    scheduleBroadcast();
+
+    return c.json({ ok: true });
   });
 
   if (staticRoot) {
