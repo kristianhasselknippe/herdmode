@@ -40,6 +40,8 @@ export function deriveStatus(
         return "working";
       case "Stop":
         return "waiting";
+      // Other events (TaskCreated, TaskCompleted, etc.) don't imply status —
+      // fall through to JSONL heuristics for a best-effort answer
     }
   }
 
